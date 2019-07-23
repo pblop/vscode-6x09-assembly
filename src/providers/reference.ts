@@ -1,13 +1,13 @@
 import * as vscode from 'vscode';
-import * as parser from './parser';
-import { AssemblyWorkspaceManager } from './workspace-manager';
+import { WorkspaceManager } from '../managers/workspace';
+import * as parser from '../parsers/assembly-document';
 
 export class ReferenceProvider implements vscode.ReferenceProvider {
 
-  constructor(private workspaceManager: AssemblyWorkspaceManager) {
+  constructor(private workspaceManager: WorkspaceManager) {
   }
 
-  public provideReferences(document: vscode.TextDocument, position: vscode.Position, context: vscode.ReferenceContext, token: vscode.CancellationToken): Promise<vscode.Location[]> {
+  public provideReferences(document: vscode.TextDocument, position: vscode.Position, context: vscode.ReferenceContext, token: vscode.CancellationToken): vscode.ProviderResult<vscode.Location[]> {
     return new Promise((resolve, reject) => {
       const range = document.getWordRangeAtPosition(position);
 

@@ -1,13 +1,12 @@
 import * as vscode from 'vscode';
-import * as parser from './parser';
-import { AssemblyWorkspaceManager } from './workspace-manager';
+import { WorkspaceManager } from '../managers/workspace';
 
 export class DocumentHighlightProvider implements vscode.DocumentHighlightProvider {
 
-  constructor(private workspaceManager: AssemblyWorkspaceManager) {
+  constructor(private workspaceManager: WorkspaceManager) {
   }
 
-  public provideDocumentHighlights(document: vscode.TextDocument, position: vscode.Position, token: vscode.CancellationToken): Promise<vscode.DocumentHighlight[]> {
+  public provideDocumentHighlights(document: vscode.TextDocument, position: vscode.Position, token: vscode.CancellationToken): vscode.ProviderResult<vscode.DocumentHighlight[]> {
     return new Promise((resolve, reject) => {
       const range = document.getWordRangeAtPosition(position);
 

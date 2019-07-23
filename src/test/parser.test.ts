@@ -9,7 +9,8 @@ import * as path from 'path';
 import * as vscode from 'vscode';
 
 // Classes under test
-import * as parser from '../parser';
+import * as parser from '../parsers/assembly-document';
+import * as AssemblyLine from '../parsers/assembly-line';
 
 function createRange(line: number, from: number, to: number): vscode.Range {
   return new vscode.Range(new vscode.Position(line, from), new vscode.Position(line, to));
@@ -25,7 +26,7 @@ suite('Parser Tests', () => {
     const expectedStart = 2;
     const expectedEnd = expectedStart + expected.length;
 
-    const line = new parser.AssemblyLine(text);
+    const line = new AssemblyLine.AssemblyLine(text);
 
     assert.equal(line.comment, expected, 'Comment not captured correctly');
     assert.equal(line.commentRange.start.character, expectedStart, 'Comment Range start incorrect');
@@ -38,7 +39,7 @@ suite('Parser Tests', () => {
     const expectedStart = 2;
     const expectedEnd = expectedStart + expected.length;
 
-    const line = new parser.AssemblyLine(text);
+    const line = new AssemblyLine.AssemblyLine(text);
 
     assert.equal(line.comment, expected, 'Comment not captured correctly');
     assert.equal(line.commentRange.start.character, expectedStart, 'Comment Range start incorrect');
@@ -51,7 +52,7 @@ suite('Parser Tests', () => {
     const expectedStart = 4;
     const expectedEnd = expectedStart + expected.length;
 
-    const line = new parser.AssemblyLine(text);
+    const line = new AssemblyLine.AssemblyLine(text);
 
     assert.equal(line.comment, expected, 'Comment not captured correctly');
     assert.equal(line.commentRange.start.character, expectedStart, 'Comment Range start incorrect');
@@ -64,7 +65,7 @@ suite('Parser Tests', () => {
     const expectedStart = 10;
     const expectedEnd = expectedStart + expected.length;
 
-    const line = new parser.AssemblyLine(text);
+    const line = new AssemblyLine.AssemblyLine(text);
 
     assert.equal(line.comment, expected, 'Comment not captured correctly');
     assert.equal(line.commentRange.start.character, expectedStart, 'Comment Range start incorrect');
@@ -77,7 +78,7 @@ suite('Parser Tests', () => {
     const expectedStart = 0;
     const expectedEnd = 0;
 
-    const line = new parser.AssemblyLine(text);
+    const line = new AssemblyLine.AssemblyLine(text);
 
     assert.equal(line.label, expected);
     assert.equal(line.labelRange.start.character, expectedStart, 'Label Range start incorrect');
@@ -90,7 +91,7 @@ suite('Parser Tests', () => {
     const expectedStart = 0;
     const expectedEnd = expected.length;
 
-    const line = new parser.AssemblyLine(text);
+    const line = new AssemblyLine.AssemblyLine(text);
 
     assert.equal(line.label, expected);
     assert.equal(line.labelRange.start.character, expectedStart, 'Label Range start incorrect');
@@ -103,7 +104,7 @@ suite('Parser Tests', () => {
     const expectedStart = 0;
     const expectedEnd = expected.length;
 
-    const line = new parser.AssemblyLine(text);
+    const line = new AssemblyLine.AssemblyLine(text);
 
     assert.equal(line.label, expected);
     assert.equal(line.labelRange.start.character, expectedStart, 'Label Range start incorrect');
@@ -116,7 +117,7 @@ suite('Parser Tests', () => {
     const expectedStart = 0;
     const expectedEnd = expected.length;
 
-    const line = new parser.AssemblyLine(text);
+    const line = new AssemblyLine.AssemblyLine(text);
 
     assert.equal(line.label, expected);
     assert.equal(line.labelRange.start.character, expectedStart, 'Label Range start incorrect');
@@ -129,7 +130,7 @@ suite('Parser Tests', () => {
     const expectedStart = 0;
     const expectedEnd = expected.length;
 
-    const line = new parser.AssemblyLine(text);
+    const line = new AssemblyLine.AssemblyLine(text);
 
     assert.equal(line.label, expected);
     assert.equal(line.labelRange.start.character, expectedStart, 'Label Range start incorrect');
@@ -142,7 +143,7 @@ suite('Parser Tests', () => {
     const expectedStart = 0;
     const expectedEnd = expectedStart + expected.length;
 
-    const line = new parser.AssemblyLine(text);
+    const line = new AssemblyLine.AssemblyLine(text);
 
     assert.equal(line.label, expected);
     assert.equal(line.labelRange.start.character, expectedStart, 'Label Range start incorrect');
@@ -155,7 +156,7 @@ suite('Parser Tests', () => {
     const expectedStart = 0;
     const expectedEnd = expected.length;
 
-    const line = new parser.AssemblyLine(text);
+    const line = new AssemblyLine.AssemblyLine(text);
 
     assert.equal(line.label, expected);
     assert.equal(line.labelRange.start.character, expectedStart, 'Label Range start incorrect');
@@ -168,7 +169,7 @@ suite('Parser Tests', () => {
     const expectedStart = 3;
     const expectedEnd = expectedStart + expected.length;
 
-    const line = new parser.AssemblyLine(text);
+    const line = new AssemblyLine.AssemblyLine(text);
 
     assert.equal(line.opcode, expected);
     assert.equal(line.opcodeRange.start.character, expectedStart, 'Range start incorrect');
@@ -181,7 +182,7 @@ suite('Parser Tests', () => {
     const expectedStart = 8;
     const expectedEnd = expectedStart + expected.length;
 
-    const line = new parser.AssemblyLine(text);
+    const line = new AssemblyLine.AssemblyLine(text);
 
     assert.equal(line.opcode, expected);
     assert.equal(line.opcodeRange.start.character, expectedStart, 'Range start incorrect');
@@ -194,7 +195,7 @@ suite('Parser Tests', () => {
     const expectedStart = 9;
     const expectedEnd = expectedStart + expected.length;
 
-    const line = new parser.AssemblyLine(text);
+    const line = new AssemblyLine.AssemblyLine(text);
 
     assert.equal(line.opcode, expected);
     assert.equal(line.opcodeRange.start.character, expectedStart, 'Range start incorrect');
@@ -207,7 +208,7 @@ suite('Parser Tests', () => {
     const expectedStart = 9;
     const expectedEnd = expectedStart + expected.length;
 
-    const line = new parser.AssemblyLine(text);
+    const line = new AssemblyLine.AssemblyLine(text);
 
     assert.equal(line.opcode, expected);
     assert.equal(line.opcodeRange.start.character, expectedStart, 'Range start incorrect');
@@ -220,7 +221,7 @@ suite('Parser Tests', () => {
     const expectedStart = 7;
     const expectedEnd = expectedStart + expected.length;
 
-    const line = new parser.AssemblyLine(text);
+    const line = new AssemblyLine.AssemblyLine(text);
 
     assert.equal(line.operand, expected);
     assert.equal(line.operandRange.start.character, expectedStart, 'Range start incorrect');
@@ -233,7 +234,7 @@ suite('Parser Tests', () => {
     const expectedStart = 12;
     const expectedEnd = expectedStart + expected.length;
 
-    const line = new parser.AssemblyLine(text);
+    const line = new AssemblyLine.AssemblyLine(text);
 
     assert.equal(line.operand, expected);
     assert.equal(line.operandRange.start.character, expectedStart, 'Range start incorrect');
@@ -255,7 +256,7 @@ suite('Parser Tests', () => {
     const expectedCommentStart = 24;
     const expectedCommentEnd = expectedCommentStart + expectedComment.length;
 
-    const line = new parser.AssemblyLine(text);
+    const line = new AssemblyLine.AssemblyLine(text);
 
     assert.equal(line.label, expectedLabel, 'Label not captured');
     assert.equal(line.labelRange.start.character, expectedLabelStart, 'Label Range start incorrect');
@@ -277,7 +278,7 @@ suite('Parser Tests', () => {
     const expectedStart = 7;
     const expectedEnd = expectedStart + expected.length;
 
-    const line = new parser.AssemblyLine(text);
+    const line = new AssemblyLine.AssemblyLine(text);
 
     assert.equal(line.opcode, expected);
     assert.equal(line.opcodeRange.start.character, expectedStart, 'Range start incorrect');
@@ -290,7 +291,7 @@ suite('Parser Tests', () => {
     const expectedStart = 15;
     const expectedEnd = expectedStart + expected.length;
 
-    const line = new parser.AssemblyLine(text);
+    const line = new AssemblyLine.AssemblyLine(text);
 
     assert.equal(line.reference, expected);
     assert.equal(line.referenceRange.start.character, expectedStart, 'Range start incorrect');

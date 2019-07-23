@@ -1,85 +1,109 @@
 import * as path from 'path';
 import * as vscode from 'vscode';
-import { CodeLensProvider } from './codelens';
-import { ChangeCaseOpcodeCommand } from './commands';
-import { CompletionItemProvider } from './completion';
-import { AssemblyConfigurationManager, OpcodeCase } from './config-manager';
-import { DefinitionProvider } from './definition';
-import { DocumentHighlightProvider } from './document-highlight';
-import { DocumentSymbolProvider } from './document-symbol';
-import { HoverProvider } from './hover';
-import { ReferenceProvider } from './reference';
-import { RenameProvider } from './rename';
-import { AssemblyWorkspaceManager } from './workspace-manager';
+import { ChangeCaseOpcodeCommand, StartEmulatorCommand } from './commands';
+import { DebugAdapterDescriptorFactory } from './debug/debug-adaptor';
+import { DebugConfigurationProvider } from './debug/debug-configuration';
+import { ConfigurationManager, OpcodeCase } from './managers/configuration';
+import { WindowManager } from './managers/window';
+import { WorkspaceManager } from './managers/workspace';
+import { CodeLensProvider } from './providers/codelens';
+import { CompletionItemProvider } from './providers/completion';
+import { DefinitionProvider } from './providers/definition';
+import { DocumentHighlightProvider } from './providers/document-highlight';
+import { DocumentSymbolProvider } from './providers/document-symbol';
+import { HoverProvider } from './providers/hover';
+import { ReferenceProvider } from './providers/reference';
+import { RenameProvider } from './providers/rename';
+import { State } from './state';
 
-const ASM6X09_MODE: vscode.DocumentSelector = { language: 'asm6x09', scheme: 'file' };
-const WorkspaceManager: AssemblyWorkspaceManager = new AssemblyWorkspaceManager(path.join(__dirname, '..'));
-const ConfigurationManager: AssemblyConfigurationManager = new AssemblyConfigurationManager();
-const disposables: Array<vscode.Disposable| undefined> = new Array<vscode.Disposable | undefined>();
+const ASM6X09_LANGUAGE: string = 'asm6x09';
+const ASM6X09_MODE: vscode.DocumentSelector = { language: ASM6X09_LANGUAGE, scheme: 'file' };
+const ASM6X09_DEBUG_TYPE: string = ASM6X09_LANGUAGE;
+const disposables: Array<vscode.Disposable | undefined> = new Array<vscode.Disposable | undefined>();
+
+export let ExtensionState: State;
 
 export function activate(context: vscode.ExtensionContext) {
 
-  ConfigurationManager.update(vscode.workspace.getConfiguration('asm6x09.editor'));
+  ExtensionState = new State(context.globalState);
+
+  const configurationManager = ExtensionState.configurationManager;
+  const windowManager = ExtensionState.windowManager;
+  const workspaceManager = ExtensionState.workspaceManager;
+
+  configurationManager.update(vscode.workspace.getConfiguration(ASM6X09_LANGUAGE));
 
   // language features
   disposables.push(vscode.languages.registerCodeLensProvider(
     ASM6X09_MODE,
-    new CodeLensProvider(WorkspaceManager, ConfigurationManager)
+    new CodeLensProvider(workspaceManager, configurationManager)
   ));
 
   disposables.push(vscode.languages.registerCompletionItemProvider(
     ASM6X09_MODE,
-    new CompletionItemProvider(WorkspaceManager, ConfigurationManager),
+    new CompletionItemProvider(workspaceManager, configurationManager),
     '\t', '\n'));
 
   disposables.push(vscode.languages.registerDefinitionProvider(
     ASM6X09_MODE,
-    new DefinitionProvider(WorkspaceManager)
+    new DefinitionProvider(workspaceManager)
   ));
 
   disposables.push(vscode.languages.registerDocumentHighlightProvider(
     ASM6X09_MODE,
-    new DocumentHighlightProvider(WorkspaceManager)
+    new DocumentHighlightProvider(workspaceManager)
   ));
 
   disposables.push(vscode.languages.registerDocumentSymbolProvider(
     ASM6X09_MODE,
-    new DocumentSymbolProvider(WorkspaceManager)
+    new DocumentSymbolProvider(workspaceManager)
   ));
 
   disposables.push(vscode.languages.registerHoverProvider(
     ASM6X09_MODE,
-    new HoverProvider(WorkspaceManager, ConfigurationManager)
+    new HoverProvider(workspaceManager, configurationManager)
   ));
 
   disposables.push(vscode.languages.registerReferenceProvider(
     ASM6X09_MODE,
-    new ReferenceProvider(WorkspaceManager)
+    new ReferenceProvider(workspaceManager)
   ));
 
   disposables.push(vscode.languages.registerRenameProvider(
     ASM6X09_MODE,
-    new RenameProvider(WorkspaceManager)
+    new RenameProvider(workspaceManager)
+  ));
+
+  // debug
+  disposables.push(vscode.debug.registerDebugConfigurationProvider(
+    ASM6X09_DEBUG_TYPE,
+    new DebugConfigurationProvider()
+  ));
+
+  const factory = new DebugAdapterDescriptorFactory();
+  disposables.push(vscode.debug.registerDebugAdapterDescriptorFactory(
+    ASM6X09_DEBUG_TYPE,
+    factory
   ));
 
   // Update configuration on change
   disposables.push(vscode.workspace.onDidChangeConfiguration(change => {
-    if (change.affectsConfiguration('asm6x09.editor')) {
-      ConfigurationManager.update(vscode.workspace.getConfiguration('asm6x09.editor'));
+    if (change.affectsConfiguration(ASM6X09_LANGUAGE)) {
+      configurationManager.update(vscode.workspace.getConfiguration(ASM6X09_LANGUAGE));
     }
   }));
 
   // update cache when document changes
   disposables.push(vscode.workspace.onDidOpenTextDocument(document => {
-    WorkspaceManager.addDocument(document);
+    workspaceManager.addDocument(document);
   }));
 
   disposables.push(vscode.workspace.onDidChangeTextDocument(change => {
-    WorkspaceManager.updateDocument(change);
+    workspaceManager.updateDocument(change);
   }));
 
   disposables.push(vscode.workspace.onDidCloseTextDocument(document => {
-    WorkspaceManager.removeDocument(document);
+    workspaceManager.removeDocument(document);
   }));
 
   disposables.push(vscode.window.onDidChangeActiveTextEditor(textEditor => {
@@ -88,32 +112,34 @@ export function activate(context: vscode.ExtensionContext) {
 
   // Workspace folders
   disposables.push(vscode.workspace.onDidChangeWorkspaceFolders(change => {
-    change.added.forEach(folder => WorkspaceManager.addFolder(folder));
-    change.removed.forEach(folder => WorkspaceManager.removeFolder(folder));
+    change.added.forEach(folder => workspaceManager.addFolder(folder));
+    change.removed.forEach(folder => workspaceManager.removeFolder(folder));
   }));
 
   // Commands
-  const opcodeLowerCommand = 'asm6x09.opcodeLowercase';
-  const opcodeUpperCommand = 'asm6x09.opcodeUppercase';
-  const opcodeCapitaliseCommand = 'asm6x09.opcodeCapitalise';
-
-  const lowercaseCommand = new ChangeCaseOpcodeCommand(WorkspaceManager, OpcodeCase.lowercase);
+  const lowercaseCommand = new ChangeCaseOpcodeCommand(workspaceManager, OpcodeCase.lowercase);
   disposables.push(vscode.commands.registerTextEditorCommand(
-    opcodeLowerCommand,
+    'asm6x09.opcodeLowercase',
     lowercaseCommand.handler,
     lowercaseCommand));
 
-  const uppercaseCommand = new ChangeCaseOpcodeCommand(WorkspaceManager, OpcodeCase.uppercase);
+  const uppercaseCommand = new ChangeCaseOpcodeCommand(workspaceManager, OpcodeCase.uppercase);
   disposables.push(vscode.commands.registerTextEditorCommand(
-    opcodeUpperCommand,
+    'asm6x09.opcodeUppercase',
     uppercaseCommand.handler,
     uppercaseCommand));
 
-  const capitalizeCommand = new ChangeCaseOpcodeCommand(WorkspaceManager, OpcodeCase.capitalised);
+  const capitalizeCommand = new ChangeCaseOpcodeCommand(workspaceManager, OpcodeCase.capitalised);
   disposables.push(vscode.commands.registerTextEditorCommand(
-    opcodeCapitaliseCommand,
+    'asm6x09.opcodeCapitalise',
     capitalizeCommand.handler,
     capitalizeCommand));
+
+  const startEmulatorCommand = new StartEmulatorCommand(configurationManager);
+  disposables.push(vscode.commands.registerCommand(
+    'asm6x09.startEmulator',
+    startEmulatorCommand.handler,
+    startEmulatorCommand));
 
   context.subscriptions.push(...disposables.filter(d => !!d));
 }

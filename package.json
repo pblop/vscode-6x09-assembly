@@ -20,7 +20,8 @@
 		"6809",
 		"6309",
 		"6x09",
-		"assembly language"
+		"assembly language",
+		"debugger"
 	],
 	"icon": "media/6x09-Assembly.png",
 	"galleryBanner": {
@@ -38,6 +39,22 @@
 	],
 	"main": "./out/extension.js",
 	"contributes": {
+		"breakpoints": [
+			{
+				"language": "asm6x09"
+			}
+		],
+		"colors": [
+			{
+				"id": "keyword.other.opcode.6309.asm6x09",
+				"description": "Color for 6309 opcodes.",
+				"defaults": {
+					"dark": "#5f56d6",
+					"light": "#8800ff",
+					"highContrast": "foreground"
+				}
+			}
+		],
 		"commands": [
 			{
 				"command": "asm6x09.opcodeLowercase",
@@ -46,68 +63,17 @@
 			},
 			{
 				"command": "asm6x09.opcodeUppercase",
-				"title": "6x09: Transform opcodes to uppercase"
+				"title": "6x09: Transform opcodes to uppercase",
+				"when": "editorLangId == asm6x09"
 			},
 			{
 				"command": "asm6x09.opcodeCapitalise",
-				"title": "6x09: Transform opcodes to capitalised"
-			}
-		],
-		"languages": [
+				"title": "6x09: Transform opcodes to capitalised",
+				"when": "editorLangId == asm6x09"
+			},
 			{
-				"id": "asm6x09",
-				"aliases": [
-					"6x09 Assembly",
-					"asm6x09"
-				],
-				"extensions": [
-					".asm",
-					".a",
-					".d"
-				],
-				"configuration": "./language-configuration.json"
-			}
-		],
-		"menus": {
-			"commandPalette": [
-				{
-					"command": "asm6x09.opcodeLowercase",
-					"when": "editorLangId == asm6x09"
-				},
-				{
-					"command": "asm6x09.opcodeUppercase",
-					"when": "editorLangId == asm6x09"
-				},
-				{
-					"command": "asm6x09.opcodeCapitalise",
-					"when": "editorLangId == asm6x09"
-				}
-			]
-		},
-		"grammars": [
-			{
-				"language": "asm6x09",
-				"scopeName": "source.asm.6x09",
-				"path": "./syntaxes/6x09.tmLanguage.json"
-			}
-		],
-		"problemMatchers": [
-			{
-				"name": "lwasm",
-				"owner": "asm6x09",
-				"fileLocation": [
-					"relative",
-					"${workspaceFolder}"
-				],
-				"pattern": [
-					{
-						"regexp": "^([^(].*)\\((\\d+)\\)\\s*:\\s*([A-Z]+)\\s*:\\s*(.*)$",
-						"file": 1,
-						"line": 2,
-						"severity": 3,
-						"message": 4
-					}
-				]
+				"command": "asm6x09.startEmulator",
+				"title": "6x09: Start Emulator"
 			}
 		],
 		"configuration": {
@@ -148,15 +114,180 @@
 				"editor.insertSpaces": false
 			}
 		},
-		"colors": [
+		"debuggers": [
 			{
-				"id": "keyword.other.opcode.6309.asm6x09",
-				"description": "Color for 6309 opcodes.",
-				"defaults": {
-					"dark": "#5f56d6",
-					"light": "#8800ff",
-					"highContrast": "foreground"
+				"type": "asm6x09",
+				"label": "6X09 Assembly",
+				"program": "./out/debug-adapter.js",
+				"runtime": "node",
+				"configurationAttributes": {
+					"launch": {
+						"required": [
+							"emulator",
+							"options"
+						],
+						"properties": {
+							"assemblyFile": {
+								"type": "string",
+								"description": "Absolute path to a assembly file.",
+								"default": "${file}"
+							},
+							"stopOnEntry": {
+								"type": "boolean",
+								"description": "Automatically stop after launch.",
+								"default": true
+							},
+							"trace": {
+								"type": "boolean",
+								"description": "Enable logging of the Debug Adapter Protocol.",
+								"default": true
+							},
+							"startEmulator": {
+								"type": "boolean",
+								"description": "If true the emulator will be started before debugging.",
+								"default": "true"
+							},
+							"emulator": {
+								"type": "string",
+								"description": "Path to the emulator.",
+								"default": "Path to emulator executable"
+							},
+							"emulatorWorkingDir": {
+								"type": "string",
+								"description": "Path to the working directory of the emulator.",
+								"default": "."
+							},
+							"buildWorkspace": {
+								"type": "boolean",
+								"description": "Build workspace before launch.",
+								"default": true
+							},
+							"sourceFileMap": {
+								"type": "object",
+								"description": "Optional source file mappings passed to the debug engine. Example: '{ \"/original/source/path\":\"/current/source/path\" }'",
+								"default": {
+									"<source-path>": "<target-path>"
+								}
+							},
+							"rootSourceFileMap": {
+								"type": "array",
+								"description": "Root paths to seek for sources",
+								"items": {
+									"type": "string",
+									"title": "Root source path"
+								},
+								"default": []
+							},
+							"options": {
+								"type": "array",
+								"items": {
+									"type": "string",
+									"title": "Emulator option"
+								},
+								"default": [],
+								"description": "Emulator options"
+							}
+						}
+					}
+				},
+				"initialConfigurations": [
+					{
+						"type": "asm6x09",
+						"request": "launch",
+						"name": "6x09 Debug Current File",
+						"buildWorkspace": true,
+						"stopOnEntry": true,
+						"startEmulator": true,
+						"emulator": "/Applications/XRoar.app/Contents/MacOS/xroar",
+						"emulatorWorkingDir": "${workspaceFolder}",
+						"assemblyFile": "$(file)",
+						"options": [
+							"-becker",
+							"-machine-desc cocous",
+							"-vdg-type 6847t1"
+						]
+					}
+				],
+				"configurationSnippets": [
+					{
+						"label": "6x09: Launch Program in Current File",
+						"description": "A new configuration for debugging the current assembly file.",
+						"body": {
+							"type": "asm6x09",
+							"request": "launch",
+							"name": "6x09 Debug Current File",
+							"buildWorkspace": true,
+							"stopOnEntry": true,
+							"startEmulator": true,
+							"emulator": "/Applications/XRoar.app/Contents/MacOS/xroar",
+							"emulatorWorkingDir": "${workspaceFolder}",
+							"assemblyFile": "$(file)",
+							"options": [
+								"-becker",
+								"-machine-desc cocous",
+								"-vdg-type 6847t1"
+							]
+						}
+					}
+				],
+				"variables": {}
+			}
+		],
+		"grammars": [
+			{
+				"language": "asm6x09",
+				"scopeName": "source.asm.6x09",
+				"path": "./syntaxes/6x09.tmLanguage.json"
+			}
+		],
+		"languages": [
+			{
+				"id": "asm6x09",
+				"aliases": [
+					"6x09 Assembly",
+					"asm6x09"
+				],
+				"extensions": [
+					".asm",
+					".a",
+					".d"
+				],
+				"configuration": "./language-configuration.json"
+			}
+		],
+		"menus": {
+			"commandPalette": [
+				{
+					"command": "asm6x09.opcodeLowercase",
+					"when": "editorLangId == asm6x09"
+				},
+				{
+					"command": "asm6x09.opcodeUppercase",
+					"when": "editorLangId == asm6x09"
+				},
+				{
+					"command": "asm6x09.opcodeCapitalise",
+					"when": "editorLangId == asm6x09"
 				}
+			]
+		},
+		"problemMatchers": [
+			{
+				"name": "lwasm",
+				"owner": "asm6x09",
+				"fileLocation": [
+					"relative",
+					"${workspaceFolder}"
+				],
+				"pattern": [
+					{
+						"regexp": "^([^(].*)\\((\\d+)\\)\\s*:\\s*([A-Z]+)\\s*:\\s*(.*)$",
+						"file": 1,
+						"line": 2,
+						"severity": 3,
+						"message": 4
+					}
+				]
 			}
 		]
 	},
@@ -172,14 +303,18 @@
 	"devDependencies": {
 		"@types/glob": "^7.1.1",
 		"@types/mocha": "^5.2.7",
-		"@types/node": "^12.0.10",
+		"@types/node": "^12.6.8",
 		"@types/vscode": "^1.36.0",
 		"glob": "^7.1.4",
 		"js-yaml": "^3.13.1",
 		"mocha": "^4.1.0",
 		"tslint": "^5.18.0",
 		"typescript": "^3.5.3",
-		"vscode-test": "^1.0.0"
+		"vscode-debugadapter": "^1.35.0",
+		"vscode-debugprotocol": "^1.35.0",
+		"vscode-test": "^1.0.2"
 	},
-	"dependencies": {}
+	"dependencies": {
+		"await-notify": "^1.0.1"
+	}
 }

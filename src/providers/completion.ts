@@ -1,16 +1,16 @@
 import * as vscode from 'vscode';
-import { AssemblyConfigurationManager, OpcodeCase } from './config-manager';
-import { DocOpcode } from './docs';
-import { AssemblySymbol } from './parser';
-import { convertToCase } from './utilities';
-import { AssemblyWorkspaceManager } from './workspace-manager';
+import { ConfigurationManager, OpcodeCase } from '../managers/configuration';
+import { WorkspaceManager } from '../managers/workspace';
+import { AssemblySymbol } from '../parsers/assembly-document';
+import { DocOpcode } from '../Parsers/docs';
+import { convertToCase } from '../utilities';
 
 export class CompletionItemProvider implements vscode.CompletionItemProvider {
 
-  constructor(private workspaceManager: AssemblyWorkspaceManager, private configurationManager: AssemblyConfigurationManager) {
+  constructor(private workspaceManager: WorkspaceManager, private configurationManager: ConfigurationManager) {
   }
 
-  public provideCompletionItems(document: vscode.TextDocument, position: vscode.Position, token: vscode.CancellationToken): Promise<vscode.CompletionItem[]> {
+  public provideCompletionItems(document: vscode.TextDocument, position: vscode.Position, token: vscode.CancellationToken): vscode.ProviderResult<vscode.CompletionItem[]> {
     return new Promise((resolve, reject) => {
       const range = document.getWordRangeAtPosition(position);
 

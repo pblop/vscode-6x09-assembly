@@ -1,6 +1,6 @@
 import { TextDocument, TextDocumentContentChangeEvent, Uri } from 'vscode';
+import { AssemblyDocument } from '../parsers/assembly-document';
 import { Collection } from './collection';
-import { AssemblyDocument } from './parser';
 
 export class AssemblyFolder {
   public documents: Collection<AssemblyDocument> = new Collection<AssemblyDocument>();
