@@ -16,6 +16,24 @@ function createRange(line: number, from: number, to: number): vscode.Range {
   return new vscode.Range(new vscode.Position(line, from), new vscode.Position(line, to));
 }
 
+function compareSymbols(actual: parser.AssemblySymbol[], expected: any): boolean {
+  if (actual.length !== expected.length) {
+    return false;
+  }
+
+  let count = actual.length;
+  while (count--) {
+    if (actual[count].documentation !== expected[count].documentation
+      || actual[count].kind !== expected[count].kind
+      || actual[count].name !== expected[count].name
+      || !actual[count].range.isEqual(expected[count].range)
+      || !actual[count].lineRange.isEqual(expected[count].lineRange)) {
+        return false;
+      }
+  }
+  return true;
+}
+
 // Defines a Mocha test suite to group tests of similar kind together
 suite('Parser Tests', () => {
   const testFolderLocation = '../../src/test/data';
@@ -326,8 +344,7 @@ suite('Parser Tests', () => {
     const document = new parser.AssemblyDocument(content);
 
     assert.equal(document.lines.length, expectedNumberOfLines, 'Expected number of lines do not match');
-    assert.deepEqual(document.symbols, expectedSymbols, 'Symbols do not match');
-    assert.deepEqual(document.references, expectedReferences, 'References do not match');
+    assert.ok(compareSymbols(document.symbols, expectedSymbols), 'Symbols do not match');
+    assert.ok(compareSymbols(document.references, expectedReferences), 'References do not match');
   });
-
 });
