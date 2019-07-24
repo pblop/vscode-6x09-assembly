@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import { ConfigurationManager, OpcodeCase } from '../managers/configuration';
 import { WorkspaceManager } from '../managers/workspace';
 import { AssemblySymbol } from '../parsers/assembly-document';
-import { DocOpcode } from '../Parsers/docs';
+import { DocOpcode } from '../parsers/docs';
 import { convertToCase } from '../utilities';
 
 export class CompletionItemProvider implements vscode.CompletionItemProvider {
