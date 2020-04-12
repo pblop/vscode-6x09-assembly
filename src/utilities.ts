@@ -1,7 +1,30 @@
 import * as cp from 'child_process';
 import * as vscode from 'vscode';
+import { Range, Position, AssemblySymbol } from './common';
 import { ExtensionState } from './extension';
 import { OpcodeCase } from './managers/configuration';
+import * as fileUrl from 'file-url';
+
+
+export function filePathToUri(filePath: string): vscode.Uri {
+  return  vscode.Uri.parse(fileUrl(filePath, {resolve: false}), true);
+}
+
+export function uriToFilePath(uri: vscode.Uri): string {
+  return uri.fsPath;
+}
+
+export function convertPosition(position: Position): vscode.Position {
+  return new vscode.Position(position.line, position.character);
+}
+
+export function convertRange(range: Range): vscode.Range {
+  return new vscode.Range(convertPosition(range.start), convertPosition(range.end));
+}
+
+export function symbolToLocation(s: AssemblySymbol): vscode.Location {
+  return new vscode.Location(filePathToUri(s.filePath), convertRange(s.range));
+}
 
 export function convertToCase(name: string, casing: OpcodeCase): string {
   if (casing === OpcodeCase.lowercase) {
@@ -15,6 +38,10 @@ export function convertToCase(name: string, casing: OpcodeCase): string {
 
 export function convertToSymbolKind(kind: string): vscode.SymbolKind {
   return vscode.SymbolKind[kind];
+}
+
+export function symbolToDocumentSymbol(s: AssemblySymbol): vscode.DocumentSymbol {
+  return new vscode.DocumentSymbol(s.name, s.documentation, convertToSymbolKind(s.kind.toString()), convertRange(s.lineRange), convertRange(s.range));
 }
 
 export function killProcess(process: cp.ChildProcess, details = ''): void {

@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import { WorkspaceManager } from '../managers/workspace';
 import { SymbolManager } from '../managers/symbol';
+import { symbolToLocation, convertRange } from '../utilities';
 
 export class ReferenceProvider implements vscode.ReferenceProvider {
 
@@ -19,17 +20,17 @@ export class ReferenceProvider implements vscode.ReferenceProvider {
           const assemblyLine = assemblyDocument.lines[position.line];
           const symbolManager = this.workspaceManager.getSymbolManager(document);
 
-          if (assemblyLine.label && range.intersection(assemblyLine.labelRange)) {
+          if (assemblyLine.label && range.intersection(convertRange(assemblyLine.labelRange))) {
             resolve(this.findReferences(symbolManager, word, context.includeDeclaration, document.uri));
             return;
           }
 
-          if (assemblyLine.opcode && range.intersection(assemblyLine.opcodeRange)) {
+          if (assemblyLine.opcode && range.intersection(convertRange(assemblyLine.opcodeRange))) {
             resolve(this.findReferences(symbolManager, word, context.includeDeclaration, document.uri));
             return;
           }
 
-          if (assemblyLine.operand && range.intersection(assemblyLine.operandRange)) {
+          if (assemblyLine.operand && range.intersection(convertRange(assemblyLine.operandRange))) {
             resolve(this.findReferences(symbolManager, word, context.includeDeclaration, document.uri));
             return;
           }
@@ -41,7 +42,7 @@ export class ReferenceProvider implements vscode.ReferenceProvider {
   }
 
   private findReferences(symbolsManager: SymbolManager, word: string, includeDeclaration: boolean, uri: vscode.Uri): vscode.Location[] {
-    return symbolsManager.findReferencesByName(word, includeDeclaration).map(s => new vscode.Location(s.uri, s.range));
+    return symbolsManager.findReferencesByName(word, includeDeclaration).map(s => symbolToLocation(s));
   }
 
 }

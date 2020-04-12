@@ -1,6 +1,6 @@
-import { Position, Range } from 'vscode';
+import { Position, Range } from '../common';
 
-const registers = ['a', 'b', 'd', 'e', 'f', 'x', 'y', 'w', 'q', 'u', 's', 'v', 'pc', 'dp', 'cc', 'pcr']
+const registers = ['a', 'b', 'd', 'e', 'f', 'x', 'y', 'w', 'q', 'u', 's', 'v', 'pc', 'dp', 'cc', 'pcr'];
 
 interface FoundSymbol {
   name: string;
@@ -27,8 +27,8 @@ export class AssemblyLine {
     if (rawLineNumber) {
       this.lineNumber = rawLineNumber;
     }
-    this.startOfLine = this.getPositon(0);
-    this.endOfLine = this.getPositon(this.rawLine.length);
+    this.startOfLine = this.getPosition(0);
+    this.endOfLine = this.getPosition(this.rawLine.length);
     this.lineRange = this.getRange(0, this.rawLine.length);
     this.labelRange = this.getRange(0, 0);
     this.opcodeRange = this.getRange(0, 0);
@@ -64,11 +64,11 @@ export class AssemblyLine {
       return;
     }
   }
-  private getPositon(index: number): Position {
-    return new Position(this.lineNumber, index);
+  private getPosition(index: number): Position {
+    return { line: this.lineNumber, character: index};
   }
   private getRange(from: number, to: number): Range {
-    return new Range(new Position(this.lineNumber, from), new Position(this.lineNumber, to));
+    return { start: this.getPosition(from), end: this.getPosition(to)};
   }
   private matchSymbol(text: string): RegExpMatchArray {
     return text.match(/([a-z._][a-z0-9.$_@]*)/i);

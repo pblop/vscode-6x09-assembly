@@ -3,7 +3,7 @@ import { ConfigurationManager, OpcodeCase } from '../managers/configuration';
 import { WorkspaceManager } from '../managers/workspace';
 import { AssemblySymbol } from '../common';
 import { DocOpcode } from '../parsers/docs';
-import { convertToCase } from '../utilities';
+import { convertToCase, convertRange } from '../utilities';
 
 export class CompletionItemProvider implements vscode.CompletionItemProvider {
 
@@ -23,12 +23,12 @@ export class CompletionItemProvider implements vscode.CompletionItemProvider {
           const assemblyLine = assemblyDocument.lines[position.line];
           const casing = this.configurationManager.opcodeCasing;
 
-          if (assemblyLine.opcode && range.intersection(assemblyLine.opcodeRange)) {
+          if (assemblyLine.opcode && range.intersection(convertRange(assemblyLine.opcodeRange))) {
             const items = this.workspaceManager.opcodeDocs.findOpcode(word.toUpperCase()).map(opcode => this.createOpcodeCompletionItem(opcode, casing));
             resolve(items.concat(symbolManager.findMacro(word).map(label => this.createSymbolCompletionItem(label))));
           }
 
-          if (assemblyLine.operand && range.intersection(assemblyLine.operandRange)) {
+          if (assemblyLine.operand && range.intersection(convertRange(assemblyLine.operandRange))) {
             resolve(symbolManager.findLabel(word).map(label => this.createSymbolCompletionItem(label)));
             return;
           }

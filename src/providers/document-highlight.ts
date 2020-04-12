@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import { WorkspaceManager } from '../managers/workspace';
+import { symbolToLocation, convertRange } from '../utilities';
 
 export class DocumentHighlightProvider implements vscode.DocumentHighlightProvider {
 
@@ -18,8 +19,8 @@ export class DocumentHighlightProvider implements vscode.DocumentHighlightProvid
           const word = document.getText(range);
           const assemblyLine = assemblyDocument.lines[position.line];
 
-          if ((assemblyLine.label && range.intersection(assemblyLine.labelRange)) || (assemblyLine.operand && range.intersection(assemblyLine.operandRange))) {
-            resolve(symbolManager.findReferencesByName(word, true).map(s => new vscode.Location(document.uri, s.range)));
+          if ((assemblyLine.label && range.intersection(convertRange(assemblyLine.labelRange))) || (assemblyLine.operand && range.intersection(convertRange(assemblyLine.operandRange)))) {
+            resolve(symbolManager.findReferencesByName(word, true).map(s => symbolToLocation(s)));
             return;
           }
         }

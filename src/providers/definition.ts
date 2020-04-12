@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import { WorkspaceManager } from '../managers/workspace';
+import { symbolToLocation, convertRange } from '../utilities';
 
 export class DefinitionProvider implements vscode.DefinitionProvider {
 
@@ -18,14 +19,14 @@ export class DefinitionProvider implements vscode.DefinitionProvider {
           const word = document.getText(range);
           const assemblyLine = assemblyDocument.lines[position.line];
 
-          if ((assemblyLine.operand && range.intersection(assemblyLine.operandRange))
-            || (assemblyLine.label && range.intersection(assemblyLine.labelRange))) {
-            resolve(symbolManager.findDefinitionsByName(word).map(s => new vscode.Location(s.uri, s.range)));
+          if ((assemblyLine.operand && range.intersection(convertRange(assemblyLine.operandRange)))
+            || (assemblyLine.label && range.intersection(convertRange(assemblyLine.labelRange)))) {
+            resolve(symbolManager.findDefinitionsByName(word).map(s => symbolToLocation(s)));
             return;
           }
 
-          if (assemblyLine.opcode && range.intersection(assemblyLine.opcodeRange)) {
-            resolve(symbolManager.findMacro(word).map(s => new vscode.Location(s.uri, s.range)));
+          if (assemblyLine.opcode && range.intersection(convertRange(assemblyLine.opcodeRange))) {
+            resolve(symbolManager.findMacro(word).map(s => symbolToLocation(s)));
             return;
           }
         }

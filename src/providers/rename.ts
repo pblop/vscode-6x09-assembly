@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import { WorkspaceManager } from '../managers/workspace';
+import { convertRange } from '../utilities';
 
 export class RenameProvider implements vscode.RenameProvider {
 
@@ -17,7 +18,7 @@ export class RenameProvider implements vscode.RenameProvider {
           const edit = new vscode.WorkspaceEdit();
           const symbols = symbolManager.findReferencesByName(word, true);
           if (symbols) {
-            symbols.forEach(s => edit.replace(document.uri, s.range, newName));
+            symbols.forEach(s => edit.replace(document.uri, convertRange(s.range), newName));
           }
           resolve(edit);
         }
@@ -36,10 +37,9 @@ export class RenameProvider implements vscode.RenameProvider {
 
         if (!token.isCancellationRequested) {
           const word = document.getText(range);
-
-          const symbol = symbolManager.findReferencesByName(word, true).find(s => s.range.intersection(range));
+          const symbol = symbolManager.findReferencesByName(word, true).find(s => convertRange(s.range).intersection(range));
           if (symbol) {
-            resolve({ range: symbol.range, placeholder: symbol.name });
+            resolve({ range: convertRange(symbol.range), placeholder: symbol.name });
           }
         }
 

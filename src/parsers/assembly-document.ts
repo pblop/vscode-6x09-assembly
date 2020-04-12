@@ -1,19 +1,18 @@
-import { CancellationToken, CompletionItemKind, Position, Range, TextDocument, Uri } from 'vscode';
+import { CancellationToken, CompletionItemKind, Position, Range, TextDocument } from 'vscode';
 import { AssemblyLine } from './assembly-line';
 import { AssemblySymbol } from '../common';
 import * as path from 'path';
 import * as lineReader from 'line-reader';
-import * as fileUrl from 'file-url';
 import * as fs from 'fs';
 import { SymbolManager } from '../managers/symbol';
 
 export class AssemblyDocument {
-  public uri: Uri;
+  public filePath: string;
   public lines: AssemblyLine[] = new Array<AssemblyLine>();
   public referencedDocuments: string[] = new Array<string>();
 
   constructor(private symbolManager: SymbolManager, document: TextDocument, range?: Range, cancelationToken?: CancellationToken) {
-    this.uri = document.uri;
+    this.filePath = document.fileName;
     this.parse(document, range, cancelationToken);
   }
 
@@ -26,7 +25,7 @@ export class AssemblyDocument {
       range = new Range(new Position(0, 0), new Position(document.lineCount - 1, 0));
     }
 
-    this.symbolManager.clearDocument(document.uri);
+    this.symbolManager.clearDocument(document.fileName);
     for (let i = range.start.line; i <= range.end.line; i++) {
       if (cancelationToken && cancelationToken.isCancellationRequested) {
         return;
@@ -36,20 +35,20 @@ export class AssemblyDocument {
       const asmLine = new AssemblyLine(line.text, line.lineNumber);
       this.lines.push(asmLine);
       if (this.isMacroDefinition(asmLine)) {
-        this.symbolManager.addDefinition(new AssemblySymbol(asmLine.label, asmLine.labelRange, asmLine.comment, CompletionItemKind.Function, asmLine.lineRange, this.uri));
+        this.symbolManager.addDefinition(new AssemblySymbol(asmLine.label, asmLine.labelRange, asmLine.comment, CompletionItemKind.Function, asmLine.lineRange, this.filePath));
       } else if (this.isStructDefintion(asmLine)) {
-        this.symbolManager.addDefinition(new AssemblySymbol(asmLine.label, asmLine.labelRange, asmLine.comment, CompletionItemKind.Struct, asmLine.lineRange, this.uri));
+        this.symbolManager.addDefinition(new AssemblySymbol(asmLine.label, asmLine.labelRange, asmLine.comment, CompletionItemKind.Struct, asmLine.lineRange, this.filePath));
       } else if (this.isStorageDefinition(asmLine)) {
-        this.symbolManager.addDefinition(new AssemblySymbol(asmLine.label, asmLine.labelRange, asmLine.comment, CompletionItemKind.Variable, asmLine.lineRange, this.uri));
+        this.symbolManager.addDefinition(new AssemblySymbol(asmLine.label, asmLine.labelRange, asmLine.comment, CompletionItemKind.Variable, asmLine.lineRange, this.filePath));
       } else if (this.isConstantDefinition(asmLine)) {
-        this.symbolManager.addDefinition(new AssemblySymbol(asmLine.label, asmLine.labelRange, asmLine.comment, CompletionItemKind.Constant, asmLine.lineRange, this.uri));
+        this.symbolManager.addDefinition(new AssemblySymbol(asmLine.label, asmLine.labelRange, asmLine.comment, CompletionItemKind.Constant, asmLine.lineRange, this.filePath));
       } else if (this.isFileReference(asmLine)) {
-        this.referencedDocuments.push(path.join(path.dirname(this.uri.fsPath), asmLine.operand.trim()));
+        this.referencedDocuments.push(path.join(path.dirname(this.filePath), asmLine.operand.trim()));
       } else if (asmLine.label) {
-        this.symbolManager.addDefinition(new AssemblySymbol(asmLine.label, asmLine.labelRange, asmLine.comment, CompletionItemKind.Method, asmLine.lineRange, this.uri));
+        this.symbolManager.addDefinition(new AssemblySymbol(asmLine.label, asmLine.labelRange, asmLine.comment, CompletionItemKind.Method, asmLine.lineRange, this.filePath));
       }
       if (asmLine.reference) {
-        this.symbolManager.addReference(new AssemblySymbol(asmLine.reference, asmLine.referenceRange, '', CompletionItemKind.Reference, asmLine.lineRange, this.uri));
+        this.symbolManager.addReference(new AssemblySymbol(asmLine.reference, asmLine.referenceRange, '', CompletionItemKind.Reference, asmLine.lineRange, this.filePath));
       }
     }
 
@@ -60,13 +59,12 @@ export class AssemblyDocument {
         const stats = fs.statSync(filePath);
         if (stats && stats.isFile()) {
           fs.accessSync(filePath, fs.constants.R_OK);
-          const uri = Uri.parse(fileUrl(filePath, {resolve: false}));
-          this.symbolManager.clearDocument(uri);
+          this.symbolManager.clearDocument(filePath);
           let lineNumber = 0;
           lineReader.eachLine(filePath, line => {
             const asmLine = new AssemblyLine(line, lineNumber++);
             if (asmLine.label) {
-              this.symbolManager.addDefinition(new AssemblySymbol(asmLine.label, asmLine.labelRange, asmLine.comment, CompletionItemKind.Method, asmLine.lineRange, uri));
+              this.symbolManager.addDefinition(new AssemblySymbol(asmLine.label, asmLine.labelRange, asmLine.comment, CompletionItemKind.Method, asmLine.lineRange, filePath));
             }
           });
         }
@@ -85,7 +83,7 @@ export class AssemblyDocument {
       if (line.opcode) {
         const macro = this.symbolManager.getMacro(line.opcode);
         if (macro) {
-          this.symbolManager.addReference(new AssemblySymbol(line.opcode, line.opcodeRange, macro.documentation, macro.kind, line.lineRange, this.uri));
+          this.symbolManager.addReference(new AssemblySymbol(line.opcode, line.opcodeRange, macro.documentation, macro.kind, line.lineRange, this.filePath));
         }
       }
     });

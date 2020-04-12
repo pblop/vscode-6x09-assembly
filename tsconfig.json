@@ -7,10 +7,11 @@
 		"sourceMap": true
 	},
 	"include": [
-		"src"
+		"src", "test"
 	],
 	"exclude": [
 		"node_modules",
-		".vscode-test"
+		".vscode-test",
+		"**/*.spec.ts"
 	]
 }

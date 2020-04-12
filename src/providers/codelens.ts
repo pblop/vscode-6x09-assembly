@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import { ConfigurationManager } from '../managers/configuration';
 import { WorkspaceManager } from '../managers/workspace';
+import { filePathToUri, convertRange } from '../utilities';
 
 export class CodeLensProvider implements vscode.CodeLensProvider {
   private enabled = true;
@@ -29,16 +30,16 @@ export class CodeLensProvider implements vscode.CodeLensProvider {
 
         if (!token.isCancellationRequested) {
           const lenses = new Array<vscode.CodeLens>();
-          symbolManager.findDefinitionsInDocument(document.uri).forEach(symbol => {
+          symbolManager.findDefinitionsInDocument(document.fileName).forEach(symbol => {
             const references = symbolManager.findReferencesByName(symbol.name, false);
             const command: vscode.Command = {
               command: 'editor.action.showReferences',
               title: `${references.length} reference${references.length !== 1 ? 's' : ''}`,
-              arguments: [document.uri, symbol.range.start, references.map(r => new vscode.Location(r.uri, r.range))],
+              arguments: [document.uri, symbol.range.start, references.map(r => new vscode.Location(filePathToUri(r.filePath), convertRange(r.range)))],
             };
             lenses.push({
               command,
-              range: symbol.range,
+              range: convertRange(symbol.range),
               isResolved: true,
             });
           });

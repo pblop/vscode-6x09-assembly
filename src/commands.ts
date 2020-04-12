@@ -2,7 +2,7 @@ import { TextEditor, TextEditorEdit } from 'vscode';
 import { ConfigurationManager, OpcodeCase } from './managers/configuration';
 import { WorkspaceManager } from './managers/workspace';
 import { AssemblyLine } from './parsers/assembly-line';
-import { convertToCase, execCmd } from './utilities';
+import { convertToCase, execCmd, convertRange } from './utilities';
 import { ChildProcess } from 'child_process';
 
 export class ChangeCaseOpcodeCommand {
@@ -15,7 +15,7 @@ export class ChangeCaseOpcodeCommand {
 
     assemblyDocument.lines.forEach((line: AssemblyLine) => {
       if (line.opcode && !symbolsManager.findMacro(line.opcode).length) {
-        edit.replace(line.opcodeRange, convertToCase(line.opcode, this.casing));
+        edit.replace(convertRange(line.opcodeRange), convertToCase(line.opcode, this.casing));
       }
     });
   }

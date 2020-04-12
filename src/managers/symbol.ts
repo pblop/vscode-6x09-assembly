@@ -10,9 +10,9 @@ export class SymbolManager implements vscode.Disposable {
     //TODO
   }
 
-  public clearDocument(uri: vscode.Uri): void {
-    this.definitions = this.definitions.filter(d => d.uri !== uri);
-    this.references = this.references.filter(r => r.uri !== uri);
+  public clearDocument(filePath: string): void {
+    this.definitions = this.definitions.filter(d => d.filePath !== filePath);
+    this.references = this.references.filter(r => r.filePath !== filePath);
   }
 
   public addDefinition(symbol: AssemblySymbol): AssemblySymbol {
@@ -41,8 +41,8 @@ export class SymbolManager implements vscode.Disposable {
     return this.definitions.filter(s => s.name === name);
   }
 
-  public findDefinitionsInDocument(uri: vscode.Uri): AssemblySymbol[] {
-    return this.definitions.filter(d => d.uri === uri);
+  public findDefinitionsInDocument(filePath: string): AssemblySymbol[] {
+    return this.definitions.filter(d => d.filePath === filePath);
   }
 
   public findReferencesByName(name: string, includeLabel: boolean): AssemblySymbol[] {
@@ -56,6 +56,6 @@ export class SymbolManager implements vscode.Disposable {
   public symbolsEqual(a: AssemblySymbol, b: AssemblySymbol): boolean {
     return a.kind === b.kind
       && a.name === b.name
-      && a.uri === b.uri;
+      && a.filePath === b.filePath;
   }
 }

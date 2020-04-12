@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import { ConfigurationManager, HoverVerbosity } from '../managers/configuration';
 import { WorkspaceManager } from '../managers/workspace';
+import { convertRange } from '../utilities';
 
 export class HoverProvider implements vscode.HoverProvider {
 
@@ -18,7 +19,7 @@ export class HoverProvider implements vscode.HoverProvider {
             const assemblyLine = assemblyDocument.lines[position.line];
             const symbolManager = this.workspaceManager.getSymbolManager(document);
 
-            if (assemblyLine.opcode && range.intersection(assemblyLine.opcodeRange)) {
+            if (assemblyLine.opcode && range.intersection(convertRange(assemblyLine.opcodeRange))) {
               const opcode = this.workspaceManager.opcodeDocs.getOpcode(assemblyLine.opcode);
               if (opcode) {
                 const help = new vscode.MarkdownString();
@@ -26,7 +27,7 @@ export class HoverProvider implements vscode.HoverProvider {
                 if (this.configurationManager.hoverVerbosity === HoverVerbosity.full) {
                   help.appendMarkdown(`---\n${opcode.documentation}`);
                 }
-                resolve(new vscode.Hover(help, assemblyLine.opcodeRange));
+                resolve(new vscode.Hover(help, convertRange(assemblyLine.opcodeRange)));
                 return;
               }
               const macro = symbolManager.getMacro(assemblyLine.opcode);
@@ -34,19 +35,19 @@ export class HoverProvider implements vscode.HoverProvider {
                 const help = new vscode.MarkdownString();
                 help.appendCodeblock(`(macro) ${macro.name}`);
                 help.appendMarkdown(`---\n${macro.documentation}`);
-                resolve(new vscode.Hover(help, assemblyLine.opcodeRange));
+                resolve(new vscode.Hover(help, convertRange(assemblyLine.opcodeRange)));
                 return;
               }
             }
 
-            if (assemblyLine.reference && range.intersection(assemblyLine.referenceRange)) {
+            if (assemblyLine.reference && range.intersection(convertRange(assemblyLine.referenceRange))) {
               const definitions = symbolManager.findDefinitionsByName(assemblyLine.reference);
               if (definitions.length > 0) {
                 const definition = definitions[0]; // more than one, pick first
                 const help = new vscode.MarkdownString();
                 help.appendCodeblock(`(symbol) ${definition.name}`);
                 help.appendMarkdown(`---\n${definition.documentation}`);
-                resolve(new vscode.Hover(help, assemblyLine.referenceRange));
+                resolve(new vscode.Hover(help, convertRange(assemblyLine.referenceRange)));
                 return;
               }
             }

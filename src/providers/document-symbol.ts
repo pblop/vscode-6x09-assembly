@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { WorkspaceManager } from '../managers/workspace';
-import { convertToSymbolKind } from '../utilities';
+import { symbolToDocumentSymbol } from '../utilities';
 
 export class DocumentSymbolProvider implements vscode.DocumentSymbolProvider {
 
@@ -12,7 +12,7 @@ export class DocumentSymbolProvider implements vscode.DocumentSymbolProvider {
       const symbolManager = this.workspaceManager.getSymbolManager(document);
 
       if (!token.isCancellationRequested) {
-        resolve(symbolManager.definitions.map(s => new vscode.DocumentSymbol(s.name, s.documentation, convertToSymbolKind(s.kind.toString()), s.lineRange, s.range)));
+        resolve(symbolManager.definitions.map(s => symbolToDocumentSymbol(s)));
       }
     });
   }

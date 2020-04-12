@@ -13,7 +13,7 @@ export class AssemblyListing {
 
   constructor(private document: AssemblyDocument, listingFile: string) {
     const lines = fs.readFileSync(listingFile).toString().split('\n');
-    this.sourceFile = path.basename(this.document.uri.path);
+    this.sourceFile = path.basename(this.document.filePath);
     this.parse(lines);
   }
 
