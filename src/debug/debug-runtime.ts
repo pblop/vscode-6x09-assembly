@@ -6,9 +6,10 @@ export interface IBreakpoint {
   id: number;
   line: number;
   verified: boolean;
+  originalValue: number;
 }
 
-export class Debugger extends EventEmitter {
+export class DebuggerRuntime extends EventEmitter {
 
   // the initial (and one and only) file we are 'debugging'
   private assemblyFile: string;
@@ -16,8 +17,14 @@ export class Debugger extends EventEmitter {
     return this.assemblyFile;
   }
 
+  constructor() {
+    super();
+    // Start drivewire service
+
+  }
+
   // Run control
-  public start(program: string, stopOnEntry: boolean) {
+  public start(program: string) {
     throw new Error('Method not implemented.');
   }
 

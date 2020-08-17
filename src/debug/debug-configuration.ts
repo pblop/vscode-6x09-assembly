@@ -11,7 +11,6 @@ export class DebugConfigurationProvider implements vscode.DebugConfigurationProv
           config.name = 'Launch';
           config.request = 'launch';
           config.assemblyFile = '${file}';
-          config.stopOnEntry = true;
         }
       }
 

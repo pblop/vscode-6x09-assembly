@@ -6,35 +6,42 @@ import * as vscode from 'vscode';
 import * as da from '../../node_modules/vscode-debugadapter';
 import { DebugProtocol } from '../../node_modules/vscode-debugprotocol';
 import { execCmd } from '../utilities';
-import { Debugger, IBreakpoint } from './debug';
+import { DebuggerRuntime, IBreakpoint } from './debug-runtime';
 
 /**
- * This interface describes the mock-debug specific launch attributes
+ * This interface describes the 6x09 debug specific launch attributes
  * (which are not part of the Debug Adapter Protocol).
- * The schema for these attributes lives in the package.json of the mock-debug extension.
+ * The schema for these attributes lives in the package.json of the vscode-6x09-assembly extension.
  * The interface should always match this schema.
  */
+
 export interface ILaunchRequestArguments extends DebugProtocol.LaunchRequestArguments {
-  /** An absolute path to the "program" to debug. */
-  program: string;
-  /** Automatically stop target after launch. If not specified, target does not stop. */
-  stopOnEntry?: boolean;
   /** enable logging the Debug Adapter Protocol */
   trace?: boolean;
-  /** Start emulator */
-  startEmulator: boolean;
+
+  /** An relative path (Workspace Folder) to the source file. */
+  sourceFile: string;
+
+  /** An absolute path to the source file Map. */
+  sourceFileMap: string;
+
+  /** An absolute path to the assembler. */
+  assembler: string;
+
+  /** Assembler options */
+  assemblerOptions: string[];
+
+  /** Assembler working directory */
+  assemblyWorkingDir: string;
+
   /** emulator program */
   emulator?: string;
+
+  /** Emulator options */
+  emulatorOptions: string[];
+
   /** emulator working directory */
   emulatorWorkingDir?: string;
-  /** Emulator options */
-  options: string[];
-  /** path replacements for source files */
-  sourceFileMap?: object;
-  /** root paths for sources */
-  rootSourceFileMap?: string[];
-  /** Build the workspace before debug */
-  buildWorkspace?: boolean;
 }
 
 export class DebugSession extends da.LoggingDebugSession {
@@ -44,8 +51,8 @@ export class DebugSession extends da.LoggingDebugSession {
   /** Token to cancel the emulator */
   private cancellationTokenSource?: vscode.CancellationTokenSource;
 
-  // a Mock runtime (or debugger)
-  private runtime: Debugger;
+  // the 6x09 debugger
+  private debugger: DebuggerRuntime;
 
   private variableHandles = new da.Handles<string>();
 
@@ -58,36 +65,33 @@ export class DebugSession extends da.LoggingDebugSession {
   public constructor() {
     super();
 
-    // this debugger uses zero-based lines and columns
+    // this debugger uses one-based lines and columns
     this.setDebuggerLinesStartAt1(true);
     this.setDebuggerColumnsStartAt1(true);
 
-    this.runtime = new Debugger();
+    this.debugger = new DebuggerRuntime();
 
     // setup event handlers
-    this.runtime.on('stopOnEntry', () => {
-      this.sendEvent(new da.StoppedEvent('entry', DebugSession.THREAD_ID));
-    });
-    this.runtime.on('stopOnStep', () => {
+    this.debugger.on('stopOnStep', () => {
       this.sendEvent(new da.StoppedEvent('step', DebugSession.THREAD_ID));
     });
-    this.runtime.on('stopOnBreakpoint', () => {
+    this.debugger.on('stopOnBreakpoint', () => {
       this.sendEvent(new da.StoppedEvent('breakpoint', DebugSession.THREAD_ID));
     });
-    this.runtime.on('stopOnException', () => {
+    this.debugger.on('stopOnException', () => {
       this.sendEvent(new da.StoppedEvent('exception', DebugSession.THREAD_ID));
     });
-    this.runtime.on('breakpointValidated', (bp: IBreakpoint) => {
+    this.debugger.on('breakpointValidated', (bp: IBreakpoint) => {
       this.sendEvent(new da.BreakpointEvent('changed', { verified: bp.verified, id: bp.id } as DebugProtocol.Breakpoint));
     });
-    this.runtime.on('output', (text, filePath, line, column) => {
+    this.debugger.on('output', (text, filePath, line, column) => {
       const e: DebugProtocol.OutputEvent = new da.OutputEvent(`${text}\n`);
       e.body.source = this.createSource(filePath);
       e.body.line = this.convertDebuggerLineToClient(line);
       e.body.column = this.convertDebuggerColumnToClient(column);
       this.sendEvent(e);
     });
-    this.runtime.on('end', () => {
+    this.debugger.on('end', () => {
       this.sendEvent(new da.TerminatedEvent());
     });
   }
@@ -105,10 +109,10 @@ export class DebugSession extends da.LoggingDebugSession {
     response.body.supportsConfigurationDoneRequest = true;
 
     // make VS Code to use 'evaluate' when hovering over source
-    response.body.supportsEvaluateForHovers = true;
+    // response.body.supportsEvaluateForHovers = true;
 
     // make VS Code to show a 'step back' button
-    response.body.supportsStepBack = true;
+    // response.body.supportsStepBack = true;
 
     this.sendResponse(response);
 
@@ -138,7 +142,7 @@ export class DebugSession extends da.LoggingDebugSession {
     // await this.configurationDone.wait(1000);
 
     // start the program in the runtime
-    this.runtime.start(args.program, !!args.stopOnEntry);
+    this.debugger.start(args.sourceFile);
 
     this.sendResponse(response);
   }
@@ -149,11 +153,11 @@ export class DebugSession extends da.LoggingDebugSession {
     const clientLines = args.lines || [];
 
     // clear all breakpoints for this file
-    this.runtime.clearBreakpoints(assembplyPath);
+    this.debugger.clearBreakpoints(assembplyPath);
 
     // set and verify breakpoint locations
     const actualBreakpoints = clientLines.map(l => {
-      const { verified, line, id } = this.runtime.setBreakPoint(assembplyPath, this.convertClientLineToDebugger(l));
+      const { verified, line, id } = this.debugger.setBreakPoint(assembplyPath, this.convertClientLineToDebugger(l));
       const bp = new da.Breakpoint(verified, this.convertDebuggerLineToClient(line)) as DebugProtocol.Breakpoint;
       bp.id = id;
       return bp;
@@ -183,7 +187,7 @@ export class DebugSession extends da.LoggingDebugSession {
     const maxLevels = typeof args.levels === 'number' ? args.levels : 1000;
     const endFrame = startFrame + maxLevels;
 
-    const stk = this.runtime.stack(startFrame, endFrame);
+    const stk = this.debugger.stack(startFrame, endFrame);
 
     response.body = {
       stackFrames: stk.frames.map(f => new da.StackFrame(f.index, f.name, this.createSource(f.file), this.convertDebuggerLineToClient(f.line))),
@@ -243,22 +247,22 @@ export class DebugSession extends da.LoggingDebugSession {
   }
 
   protected continueRequest(response: DebugProtocol.ContinueResponse, args: DebugProtocol.ContinueArguments): void {
-    this.runtime.continue();
+    this.debugger.continue();
     this.sendResponse(response);
   }
 
   protected reverseContinueRequest(response: DebugProtocol.ReverseContinueResponse, args: DebugProtocol.ReverseContinueArguments): void {
-    this.runtime.continue(true);
+    this.debugger.continue(true);
     this.sendResponse(response);
   }
 
   protected nextRequest(response: DebugProtocol.NextResponse, args: DebugProtocol.NextArguments): void {
-    this.runtime.step();
+    this.debugger.step();
     this.sendResponse(response);
   }
 
   protected stepBackRequest(response: DebugProtocol.StepBackResponse, args: DebugProtocol.StepBackArguments): void {
-    this.runtime.step(true);
+    this.debugger.step(true);
     this.sendResponse(response);
   }
 
@@ -270,15 +274,15 @@ export class DebugSession extends da.LoggingDebugSession {
       // 'evaluate' supports to create and delete breakpoints from the 'repl':
       let matches = /new +([0-9]+)/.exec(args.expression);
       if (matches && matches.length === 2) {
-        const mbp = this.runtime.setBreakPoint(this.runtime.sourceFile, this.convertClientLineToDebugger(parseInt(matches[1], 10)));
-        const bp = new da.Breakpoint(mbp.verified, this.convertDebuggerLineToClient(mbp.line), undefined, this.createSource(this.runtime.sourceFile)) as DebugProtocol.Breakpoint;
+        const mbp = this.debugger.setBreakPoint(this.debugger.sourceFile, this.convertClientLineToDebugger(parseInt(matches[1], 10)));
+        const bp = new da.Breakpoint(mbp.verified, this.convertDebuggerLineToClient(mbp.line), undefined, this.createSource(this.debugger.sourceFile)) as DebugProtocol.Breakpoint;
         bp.id = mbp.id;
         this.sendEvent(new da.BreakpointEvent('new', bp));
         reply = `breakpoint created`;
       } else {
         matches = /del +([0-9]+)/.exec(args.expression);
         if (matches && matches.length === 2) {
-          const mbp = this.runtime.clearBreakPoint(this.runtime.sourceFile, this.convertClientLineToDebugger(parseInt(matches[1], 10)));
+          const mbp = this.debugger.clearBreakPoint(this.debugger.sourceFile, this.convertClientLineToDebugger(parseInt(matches[1], 10)));
           if (mbp) {
             const bp = new da.Breakpoint(false) as DebugProtocol.Breakpoint;
             bp.id = mbp.id;
@@ -305,32 +309,28 @@ export class DebugSession extends da.LoggingDebugSession {
 
   protected startEmulator(args: ILaunchRequestArguments): Promise<void> {
     return new Promise((resolve, reject) => {
-      if (args.startEmulator) {
-        this.sendEvent(new da.OutputEvent(`Starting emulator: ${args.emulator}`));
-        const emulatorExe = args.emulator;
-        if (emulatorExe) {
-          // Is the emeulator exe present in the filesystem ?
-          this.checkEmulator(emulatorExe).then(exists => {
-            if (exists) {
-              this.cancellationTokenSource = new vscode.CancellationTokenSource();
-              const emulatorWorkingDir = args.emulatorWorkingDir || null;
-              execCmd(emulatorExe, args.options, emulatorWorkingDir, this.cancellationTokenSource.token).then(() => {
-                this.sendEvent(new da.TerminatedEvent());
-                resolve();
-              }).catch((err: Error) => {
-                reject(new Error(`Error raised by the emulator run: ${err.message}`));
-              });
-            } else {
-              reject(new Error(`The emulator executable '${emulatorExe}' cannot be found`));
-            }
-          });
-        } else {
-          reject(new Error('The emulator executable file path must be defined in the launch settings'));
-        }
+      this.sendEvent(new da.OutputEvent(`Starting emulator: ${args.emulator}`));
+      const emulatorExe = args.emulator;
+      if (emulatorExe) {
+        // Is the emulator exe present in the filesystem?
+        this.checkEmulator(emulatorExe).then(exists => {
+          if (exists) {
+            this.cancellationTokenSource = new vscode.CancellationTokenSource();
+            const emulatorWorkingDir = args.emulatorWorkingDir || null;
+            execCmd(emulatorExe, args.emulatorOptions, emulatorWorkingDir, this.cancellationTokenSource.token).then(() => {
+              this.sendEvent(new da.TerminatedEvent());
+              resolve();
+            }).catch((err: Error) => {
+              reject(new Error(`Error raised by the emulator run: ${err.message}`));
+            });
+          } else {
+            reject(new Error(`The emulator executable '${emulatorExe}' cannot be found`));
+          }
+        });
       } else {
-        this.sendEvent(new da.OutputEvent('Emulator starting skipped by settings'));
-        resolve();
+        reject(new Error('The emulator executable file path must be defined in the launch settings'));
       }
+
     });
   }
 

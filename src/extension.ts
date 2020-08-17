@@ -1,7 +1,7 @@
 import * as path from 'path';
 import * as vscode from 'vscode';
 import { ChangeCaseOpcodeCommand, StartEmulatorCommand } from './commands';
-import { DebugAdapterDescriptorFactory } from './debug/debug-adaptor';
+import { DebugAdapterDescriptorFactory } from './debug/debug-adapter-descriptor-factory';
 import { DebugConfigurationProvider } from './debug/debug-configuration';
 import { ConfigurationManager, OpcodeCase } from './managers/configuration';
 import { WindowManager } from './managers/window';
@@ -25,13 +25,11 @@ export let ExtensionState: State;
 
 export function activate(context: vscode.ExtensionContext) {
 
-  ExtensionState = new State(context.globalState);
+  ExtensionState = new State(ASM6X09_LANGUAGE);
 
   const configurationManager = ExtensionState.configurationManager;
   const windowManager = ExtensionState.windowManager;
   const workspaceManager = ExtensionState.workspaceManager;
-
-  configurationManager.update(vscode.workspace.getConfiguration(ASM6X09_LANGUAGE));
 
   // language features
   disposables.push(vscode.languages.registerCodeLensProvider(
@@ -95,7 +93,7 @@ export function activate(context: vscode.ExtensionContext) {
 
   // update cache when document changes
   disposables.push(vscode.workspace.onDidOpenTextDocument(document => {
-    workspaceManager.addDocument(document);
+    workspaceManager.addDocument(document, undefined);
   }));
 
   disposables.push(vscode.workspace.onDidChangeTextDocument(change => {

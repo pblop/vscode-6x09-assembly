@@ -1,5 +1,6 @@
 import { CancellationToken, CompletionItemKind, Position, Range, TextDocument, Uri } from 'vscode';
 import { AssemblyLine } from './assembly-line';
+import { ListingLine } from './listing-line';
 
 export class AssemblySymbol {
   constructor(
@@ -20,9 +21,9 @@ export class AssemblyDocument {
   public references: AssemblySymbol[] = new Array<AssemblySymbol>();
   public referencedDocuments: string[] = new Array<string>();
 
-  constructor(document: TextDocument) {
+  constructor(document: TextDocument, range?: Range, cancelationToken?: CancellationToken) {
     this.uri = document.uri;
-    this.parse(document);
+    this.parse(document, range, cancelationToken);
   }
 
   public findLabel(startsWith: string): AssemblySymbol[] {
@@ -71,7 +72,7 @@ export class AssemblyDocument {
       }
 
       const line = document.lineAt(i);
-      const asmLine = new AssemblyLine(line.text, line);
+      const asmLine = new AssemblyLine(line.text, line.lineNumber);
       this.lines.push(asmLine);
       if (this.isMacroDefinition(asmLine)) {
         this.macros.push(new AssemblySymbol(asmLine.label, asmLine.labelRange, asmLine.comment, CompletionItemKind.Function, asmLine.lineRange, this.uri));
@@ -123,8 +124,4 @@ export class AssemblyDocument {
   private isConstantDefinition(line: AssemblyLine): boolean {
     return line.label && line.opcode && (line.opcode.match(/equ|set/i) !== null);
   }
-}
-
-export class AssemblerMap {
-
 }

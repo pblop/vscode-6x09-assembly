@@ -29,7 +29,7 @@
 		"theme": "light"
 	},
 	"engines": {
-		"vscode": "^1.36.0"
+		"vscode": "^1.37.0"
 	},
 	"activationEvents": [
 		"onLanguage:asm6x09",
@@ -93,16 +93,10 @@
 					"type": "string",
 					"default": "full",
 					"enum": [
-						"none",
 						"light",
 						"full"
 					],
 					"description": "The ammount of documentation to provide when hovering over an opcode."
-				},
-				"asm6x09.editor.enableCodeLens": {
-					"type": "boolean",
-					"default": true,
-					"description": "Enable CodeLens for labels."
 				}
 			}
 		},
@@ -111,7 +105,9 @@
 				"editor.wordBasedSuggestions": false,
 				"editor.tabSize": 8,
 				"editor.useTabStops": true,
-				"editor.insertSpaces": false
+				"editor.insertSpaces": false,
+				"editor.hover.enabled": true,
+				"editor.codeLens": true
 			}
 		},
 		"debuggers": [
@@ -123,69 +119,75 @@
 				"configurationAttributes": {
 					"launch": {
 						"required": [
+							"sourceFile",
+							"sourceFileMap",
 							"emulator",
-							"options"
+							"emulatorOptions"
 						],
 						"properties": {
-							"assemblyFile": {
-								"type": "string",
-								"description": "Absolute path to a assembly file.",
-								"default": "${file}"
-							},
-							"stopOnEntry": {
-								"type": "boolean",
-								"description": "Automatically stop after launch.",
-								"default": true
-							},
 							"trace": {
 								"type": "boolean",
 								"description": "Enable logging of the Debug Adapter Protocol.",
 								"default": true
 							},
-							"startEmulator": {
-								"type": "boolean",
-								"description": "If true the emulator will be started before debugging.",
-								"default": "true"
-							},
-							"emulator": {
+							"sourceFile": {
 								"type": "string",
-								"description": "Path to the emulator.",
-								"default": "Path to emulator executable"
-							},
-							"emulatorWorkingDir": {
-								"type": "string",
-								"description": "Path to the working directory of the emulator.",
-								"default": "."
-							},
-							"buildWorkspace": {
-								"type": "boolean",
-								"description": "Build workspace before launch.",
-								"default": true
+								"description": "Absolute path to a assembly file.",
+								"default": "${relativeFile}"
 							},
 							"sourceFileMap": {
 								"type": "object",
 								"description": "Optional source file mappings passed to the debug engine. Example: '{ \"/original/source/path\":\"/current/source/path\" }'",
-								"default": {
-									"<source-path>": "<target-path>"
-								}
+								"default": "${workspaceFolder}/out/${fileBasenameNoExtension}.map"
 							},
-							"rootSourceFileMap": {
+							"assembler": {
+								"type": "string",
+								"description": "Path to the assembler",
+								"default": "lwasm"
+							},
+							"assemblerOptions": {
 								"type": "array",
-								"description": "Root paths to seek for sources",
+								"description": "Options for the assembler.",
 								"items": {
 									"type": "string",
-									"title": "Root source path"
+									"title": "Assembler options"
 								},
-								"default": []
+								"default": [
+									"--decb",
+									"--output=${fileBasenameNoExtension}.bin",
+									"--map=${fileDirname}/${fileBasenameNoExtension}.map",
+									"${relativeFile}"
+								]
 							},
-							"options": {
+							"assemblerWorkingDir": {
+								"type": "string",
+								"description": "Path to the working directory for the assembler.",
+								"default": "${workspaceFolder}"
+							},
+							"emulator": {
+								"type": "string",
+								"description": "Path to the emulator.",
+								"default": "/Applications/XRoar.app/Contents/MacOS/xroar"
+							},
+							"emulatorOptions": {
 								"type": "array",
+								"description": "Emulator options",
 								"items": {
 									"type": "string",
 									"title": "Emulator option"
 								},
-								"default": [],
-								"description": "Emulator options"
+								"default": [
+									"-becker",
+									"-machine-desc",
+									"cocous",
+									"-vdg-type",
+									"6847t1"
+								]
+							},
+							"emulatorWorkingDir": {
+								"type": "string",
+								"description": "Path to the working directory for the emulator.",
+								"default": "${workspaceFolder}/out"
 							}
 						}
 					}
@@ -195,42 +197,54 @@
 						"type": "asm6x09",
 						"request": "launch",
 						"name": "6x09 Debug Current File",
-						"buildWorkspace": true,
-						"stopOnEntry": true,
-						"startEmulator": true,
+						"sourceFile": "${relativeFile}",
+						"sourceFileMap": "${workspaceFolder}/out/${fileBasenameNoExtension}.map",
+						"assembler": "lwasm",
+						"assemblerOptions": [
+							"--decb",
+							"--output=${workspaceFolder}/out/${fileBasenameNoExtension}.bin",
+							"--map=${workspaceFolder}/out/${fileBasenameNoExtension}.map",
+							"${relativeFile}"
+						],
 						"emulator": "/Applications/XRoar.app/Contents/MacOS/xroar",
-						"emulatorWorkingDir": "${workspaceFolder}",
-						"assemblyFile": "$(file)",
-						"options": [
+						"emulatorOptions": [
 							"-becker",
-							"-machine-desc cocous",
-							"-vdg-type 6847t1"
+							"-machine-desc",
+							"cocous",
+							"-vdg-type",
+							"6847t1"
 						]
 					}
 				],
 				"configurationSnippets": [
 					{
-						"label": "6x09: Launch Program in Current File",
-						"description": "A new configuration for debugging the current assembly file.",
-						"body": {
-							"type": "asm6x09",
-							"request": "launch",
-							"name": "6x09 Debug Current File",
-							"buildWorkspace": true,
-							"stopOnEntry": true,
-							"startEmulator": true,
-							"emulator": "/Applications/XRoar.app/Contents/MacOS/xroar",
-							"emulatorWorkingDir": "${workspaceFolder}",
-							"assemblyFile": "$(file)",
-							"options": [
-								"-becker",
-								"-machine-desc cocous",
-								"-vdg-type 6847t1"
-							]
-						}
+						"type": "asm6x09",
+						"request": "launch",
+						"name": "6x09 Debug Current File",
+						"sourceFile": "${relativeFile}",
+						"sourceFileMap": "${workspaceFolder}/out/${fileBasenameNoExtension}.map",
+						"assembler": "lwasm",
+						"assemblerOptions": [
+							"--decb",
+							"--output=${workspaceFolder}/out/${fileBasenameNoExtension}.bin",
+							"--map=${workspaceFolder}/out/${fileBasenameNoExtension}.map",
+							"${relativeFile}"
+						],
+						"emulator": "/Applications/XRoar.app/Contents/MacOS/xroar",
+						"emulatorOptions": [
+							"-becker",
+							"-machine-desc",
+							"cocous",
+							"-vdg-type",
+							"6847t1"
+						],
+						"emulatorWorkingDir": "${workspaceFolder}/out"
 					}
 				],
-				"variables": {}
+				"variables": {},
+				"languages": [
+					"asm6x09"
+				]
 			}
 		],
 		"grammars": [
@@ -303,8 +317,8 @@
 	"devDependencies": {
 		"@types/glob": "^7.1.1",
 		"@types/mocha": "^5.2.7",
-		"@types/node": "^12.6.8",
-		"@types/vscode": "^1.36.0",
+		"@types/node": "^12.7.1",
+		"@types/vscode": "^1.37.0",
 		"glob": "^7.1.4",
 		"js-yaml": "^3.13.1",
 		"mocha": "^4.1.0",
@@ -312,7 +326,7 @@
 		"typescript": "^3.5.3",
 		"vscode-debugadapter": "^1.35.0",
 		"vscode-debugprotocol": "^1.35.0",
-		"vscode-test": "^1.0.2"
+		"vscode-test": "^1.2.0"
 	},
 	"dependencies": {
 		"await-notify": "^1.0.1"

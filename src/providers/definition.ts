@@ -11,23 +11,26 @@ export class DefinitionProvider implements vscode.DefinitionProvider {
       const range = document.getWordRangeAtPosition(position);
 
       if (range) {
-        const word = document.getText(range);
-        const assemblyDocument = this.workspaceManager.getAssemblyDocument(document);
-        const assemblyLine = assemblyDocument.lines[position.line];
+        const assemblyDocument = this.workspaceManager.getAssemblyDocument(document, token);
 
-        if ((assemblyLine.operand && range.intersection(assemblyLine.operandRange))
-          || (assemblyLine.label && range.intersection(assemblyLine.labelRange))) {
-          resolve(assemblyDocument.findLabel(word).map(s => new vscode.Location(document.uri, s.range)));
-          return;
+        if (!token.isCancellationRequested) {
+          const word = document.getText(range);
+          const assemblyLine = assemblyDocument.lines[position.line];
+
+          if ((assemblyLine.operand && range.intersection(assemblyLine.operandRange))
+            || (assemblyLine.label && range.intersection(assemblyLine.labelRange))) {
+            resolve(assemblyDocument.findLabel(word).map(s => new vscode.Location(document.uri, s.range)));
+            return;
+          }
+
+          if (assemblyLine.opcode && range.intersection(assemblyLine.opcodeRange)) {
+            resolve(assemblyDocument.findMacro(word).map(s => new vscode.Location(document.uri, s.range)));
+            return;
+          }
         }
 
-        if (assemblyLine.opcode && range.intersection(assemblyLine.opcodeRange)) {
-          resolve(assemblyDocument.findMacro(word).map(s => new vscode.Location(document.uri, s.range)));
-          return;
-        }
+        reject();
       }
-
-      reject();
     });
   }
 }

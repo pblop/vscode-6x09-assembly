@@ -17,7 +17,7 @@ export class ChangeCaseOpcodeCommand implements ITextEditorCommand {
   constructor(private workspaceManager: WorkspaceManager, private casing: OpcodeCase) {
   }
   public handler(textEditor: TextEditor, edit: TextEditorEdit) {
-    const assemblyDocument = this.workspaceManager.getAssemblyDocument(textEditor.document);
+    const assemblyDocument = this.workspaceManager.getAssemblyDocument(textEditor.document, undefined);
 
     assemblyDocument.lines.forEach((line: AssemblyLine) => {
       if (line.opcode && !assemblyDocument.findMacro(line.opcode).length) {

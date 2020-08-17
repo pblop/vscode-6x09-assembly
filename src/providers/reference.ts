@@ -12,27 +12,30 @@ export class ReferenceProvider implements vscode.ReferenceProvider {
       const range = document.getWordRangeAtPosition(position);
 
       if (range) {
-        const word = document.getText(range);
-        const assemblyDocument = this.workspaceManager.getAssemblyDocument(document);
-        const assemblyLine = assemblyDocument.lines[position.line];
+        const assemblyDocument = this.workspaceManager.getAssemblyDocument(document, token);
 
-        if (assemblyLine.label && range.intersection(assemblyLine.labelRange)) {
-          resolve(this.findReferences(assemblyDocument, word, context.includeDeclaration, document.uri));
-          return;
+        if (!token.isCancellationRequested) {
+          const word = document.getText(range);
+          const assemblyLine = assemblyDocument.lines[position.line];
+
+          if (assemblyLine.label && range.intersection(assemblyLine.labelRange)) {
+            resolve(this.findReferences(assemblyDocument, word, context.includeDeclaration, document.uri));
+            return;
+          }
+
+          if (assemblyLine.opcode && range.intersection(assemblyLine.opcodeRange)) {
+            resolve(this.findReferences(assemblyDocument, word, context.includeDeclaration, document.uri));
+            return;
+          }
+
+          if (assemblyLine.operand && range.intersection(assemblyLine.operandRange)) {
+            resolve(this.findReferences(assemblyDocument, word, context.includeDeclaration, document.uri));
+            return;
+          }
         }
 
-        if (assemblyLine.opcode && range.intersection(assemblyLine.opcodeRange)) {
-          resolve(this.findReferences(assemblyDocument, word, context.includeDeclaration, document.uri));
-          return;
-        }
-
-        if (assemblyLine.operand && range.intersection(assemblyLine.operandRange)) {
-          resolve(this.findReferences(assemblyDocument, word, context.includeDeclaration, document.uri));
-          return;
-        }
+        reject();
       }
-
-      reject();
     });
   }
 
